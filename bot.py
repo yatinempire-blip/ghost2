@@ -17,7 +17,7 @@ from pyrogram.types import ReplyKeyboardMarkup, KeyboardButton, InputMediaPhoto,
 
 API_ID = 36511364
 API_HASH = "249685fabdef6018e8c84dec25942b91"
-BOT_TOKEN = "8608879552:AAHwDrvWXsBSR2H7E8B-E4gPVOie-052urw"
+BOT_TOKEN = "8608879552:AAHMWoFvAaiyQ_5xXOixRCdtZSotiIikrVw"
 
 app = Client("ghost_session", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
