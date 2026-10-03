@@ -14,11 +14,9 @@ except ImportError:
 from pyrogram import Client, filters
 from pyrogram.types import ReplyKeyboardMarkup, KeyboardButton, InputMediaPhoto, InputMediaVideo
 
-# ===================== CREDENTIALS =====================
 API_ID = 36511364
 API_HASH = "249685fabdef6018e8c84dec25942b91"
 BOT_TOKEN = "8608879552:AAHMWoFvAaiyQ_5xXOixRCdtZSotiIikrVw"
-# =======================================================
 
 app = Client("ghost_session", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
@@ -31,7 +29,7 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 os.makedirs(PROCESSED_DIR, exist_ok=True)
 
 user_modes = {}
-user_watermark = {}          # uid : str or None
+user_watermark = {}
 waiting_for_wm = set()
 media_group_cache = {}
 
@@ -87,7 +85,7 @@ async def start(client, message):
     uid = message.from_user.id
     waiting_for_wm.discard(uid)
     await message.reply_text(
-        "🤖 **GHOST OPERATOR V9.0**\n"
+        "🤖 **GHOST OPERATOR V9.1**\n"
         "━━━━━━━━━━━━━━━━━━\n"
         "Watermark chahiye ya nahi?",
         reply_markup=get_start_kb()
@@ -104,10 +102,14 @@ async def wm_choice(client, message):
         waiting_for_wm.add(uid)
         await message.reply_text("Watermark text bhejo (2-30 characters):")
 
-@app.on_message(filters.text & \~filters.command(["start", "menu"]))
+@app.on_message(filters.text)
 async def text_handler(client, message):
     uid = message.from_user.id
-    text = message.text.strip()
+    text = message.text.strip() if message.text else ""
+
+    # Skip commands
+    if text.startswith("/start") or text.startswith("/menu"):
+        return
 
     if uid in waiting_for_wm:
         if 2 <= len(text) <= 30:
@@ -179,7 +181,7 @@ async def media_handler(client, message):
     if uid not in user_modes:
         user_modes[uid] = "📸 Image Stealth Wash" if message.photo else "🎥 Video Stealth Wash"
 
-    # ===== ALBUM HANDLING =====
+    # Album handling
     if message.media_group_id:
         mgid = message.media_group_id
         if mgid not in media_group_cache:
@@ -188,7 +190,7 @@ async def media_handler(client, message):
         media_group_cache[mgid].append(message)
         return
 
-    # ===== SINGLE FILE =====
+    # Single file
     status = await message.reply_text("🔄 Processing...")
     try:
         path = await message.download(file_name=os.path.join(DOWNLOAD_DIR, ""))
@@ -202,7 +204,6 @@ async def media_handler(client, message):
         else:
             await message.reply_video(out, supports_streaming=True)
 
-        # Single file → alag caption
         await message.reply_text(f"📝 **CAPTION:**\n`{random.choice(CAPTIONS)}`")
 
         await safe_delete(status)
@@ -215,7 +216,7 @@ async def media_handler(client, message):
         await safe_edit(status, f"❌ {str(e)[:220]}")
 
 async def process_album(client, original, mgid, uid):
-    await asyncio.sleep(3.5)  # wait for all files to arrive
+    await asyncio.sleep(3.5)
     messages = media_group_cache.pop(mgid, [])
     if not messages:
         return
@@ -241,11 +242,10 @@ async def process_album(client, original, mgid, uid):
             try: os.remove(path)
             except: pass
 
-        # Send as one album (max 10 at a time)
         for i in range(0, len(media_list), 10):
             await client.send_media_group(uid, media=media_list[i:i+10])
 
-        # ===== SIRF EK CAPTION =====
+        # Sirf ek caption
         await original.reply_text(f"📝 **CAPTION:**\n`{random.choice(CAPTIONS)}`")
 
         await safe_delete(status)
@@ -258,5 +258,5 @@ async def process_album(client, original, mgid, uid):
             except: pass
 
 if __name__ == "__main__":
-    print("🚀 Ghost Operator V9.0 Started")
+    print("🚀 Ghost Operator V9.1 Started")
     app.run()
