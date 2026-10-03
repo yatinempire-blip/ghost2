@@ -14,9 +14,11 @@ except ImportError:
 from pyrogram import Client, filters
 from pyrogram.types import ReplyKeyboardMarkup, KeyboardButton, InputMediaPhoto, InputMediaVideo
 
+# ===================== CREDENTIALS =====================
 API_ID = 36511364
 API_HASH = "249685fabdef6018e8c84dec25942b91"
 BOT_TOKEN = "8608879552:AAHMWoFvAaiyQ_5xXOixRCdtZSotiIikrVw"
+# =======================================================
 
 app = Client("ghost_session", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
@@ -32,12 +34,6 @@ user_modes = {}
 user_watermark = {}
 waiting_for_wm = set()
 media_group_cache = {}
-
-CAPTIONS = [
-    "POV: You couldn't scroll past this look. 🙈 Rate this look 1 to 10! 🖤\n\nComplete 4K lookbook available in VIP. ✨\nJoin VIP ₹179/Month 💋\nLink in bio 👇",
-    "This one hits different 🔥\n\nFull unreleased set is live in VIP Server.\nJoin now 🖤",
-    "Too clean to ignore 👀\n\nVIP access for exclusive content.\nLink in bio 👇"
-]
 
 def ensure_font():
     if not os.path.exists(FONT_FILE):
@@ -85,7 +81,7 @@ async def start(client, message):
     uid = message.from_user.id
     waiting_for_wm.discard(uid)
     await message.reply_text(
-        "🤖 **GHOST OPERATOR V9.1**\n"
+        "🤖 **GHOST OPERATOR V9.3**\n"
         "━━━━━━━━━━━━━━━━━━\n"
         "Watermark chahiye ya nahi?",
         reply_markup=get_start_kb()
@@ -97,7 +93,10 @@ async def wm_choice(client, message):
     if "No Watermark" in message.text:
         user_watermark[uid] = None
         waiting_for_wm.discard(uid)
-        await message.reply_text("✅ Bina Watermark ke ready.\nAb mode choose karo ya media bhejo.", reply_markup=get_main_kb())
+        await message.reply_text(
+            "✅ Bina Watermark ke ready.\nAb mode choose karo ya media bhejo.",
+            reply_markup=get_main_kb()
+        )
     else:
         waiting_for_wm.add(uid)
         await message.reply_text("Watermark text bhejo (2-30 characters):")
@@ -107,7 +106,6 @@ async def text_handler(client, message):
     uid = message.from_user.id
     text = message.text.strip() if message.text else ""
 
-    # Skip commands
     if text.startswith("/start") or text.startswith("/menu"):
         return
 
@@ -115,7 +113,10 @@ async def text_handler(client, message):
         if 2 <= len(text) <= 30:
             user_watermark[uid] = text
             waiting_for_wm.discard(uid)
-            await message.reply_text(f"✅ Watermark set: **{text}**", reply_markup=get_main_kb())
+            await message.reply_text(
+                f"✅ Watermark set: **{text}**",
+                reply_markup=get_main_kb()
+            )
         else:
             await message.reply_text("2 se 30 character ke beech likho.")
         return
@@ -135,34 +136,46 @@ async def process_media(file_path, uid, is_image=False, mute=False):
     if wm:
         safe_wm = escape_text(wm)
         draw = (
-            f",drawtext=text='{safe_wm}'{font}:x=(w-text_w)/2:y=h-th-18:"
-            f"fontsize=19:fontcolor=white@0.87:borderw=1:bordercolor=black@0.4:"
-            f"shadowcolor=black@0.55:shadowx=1:shadowy=1"
+            f",drawtext=text='{safe_wm}'{font}:x=(w-text_w)/2:y=h-th-16:"
+            f"fontsize=18:fontcolor=white@0.92:borderw=1.5:bordercolor=black@0.5:"
+            f"shadowcolor=black@0.6:shadowx=1:shadowy=1"
         )
 
     crop = round(random.uniform(0.965, 0.978), 3)
-    noise = round(random.uniform(1.3, 2.1), 1)
-    contrast = round(random.uniform(1.025, 1.05), 3)
-    bright = round(random.uniform(0.009, 0.016), 3)
+    noise = round(random.uniform(1.4, 2.2), 1)
+    contrast = round(random.uniform(1.03, 1.055), 3)
+    bright = round(random.uniform(0.01, 0.018), 3)
 
     if is_image or ext in ["jpg", "jpeg", "png", "webp"]:
         vf = f"crop=iw*{crop}:ih*{crop},eq=contrast={contrast}:brightness={bright},noise=alls={noise}:allf=t+u{draw}"
-        cmd = ["ffmpeg", "-y", "-i", file_path, "-map_metadata", "-1", "-vf", vf, "-q:v", "2", out]
+        cmd = [
+            "ffmpeg", "-y", "-i", file_path,
+            "-map_metadata", "-1",
+            "-vf", vf,
+            "-q:v", "2",
+            out
+        ]
     else:
         speed = round(random.uniform(1.035, 1.055), 3)
         vf = f"crop=iw*{crop}:ih*{crop},eq=contrast={contrast}:brightness={bright},noise=alls={noise}:allf=t+u,setpts=1/{speed}*PTS{draw}"
         cmd = [
-            "ffmpeg", "-y", "-i", file_path, "-map_metadata", "-1",
+            "ffmpeg", "-y", "-i", file_path,
+            "-map_metadata", "-1",
             "-vf", vf,
             "-c:v", "libx264", "-crf", "17", "-preset", "fast",
-            "-movflags", "+faststart", out
+            "-movflags", "+faststart",
+            out
         ]
         if mute:
             cmd.insert(-1, "-an")
         else:
             cmd.extend(["-af", f"atempo={speed}", "-c:a", "aac", "-b:a", "128k"])
 
-    proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
+    )
     _, err = await proc.communicate()
 
     if proc.returncode != 0 or not os.path.exists(out):
@@ -204,13 +217,16 @@ async def media_handler(client, message):
         else:
             await message.reply_video(out, supports_streaming=True)
 
-        await message.reply_text(f"📝 **CAPTION:**\n`{random.choice(CAPTIONS)}`")
-
         await safe_delete(status)
-        try: os.remove(path)
-        except: pass
-        try: os.remove(out)
-        except: pass
+
+        try:
+            os.remove(path)
+        except:
+            pass
+        try:
+            os.remove(out)
+        except:
+            pass
 
     except Exception as e:
         await safe_edit(status, f"❌ {str(e)[:220]}")
@@ -239,14 +255,14 @@ async def process_album(client, original, mgid, uid):
             else:
                 media_list.append(InputMediaVideo(out, supports_streaming=True))
 
-            try: os.remove(path)
-            except: pass
+            try:
+                os.remove(path)
+            except:
+                pass
 
+        # Send as album (max 10 at a time)
         for i in range(0, len(media_list), 10):
             await client.send_media_group(uid, media=media_list[i:i+10])
-
-        # Sirf ek caption
-        await original.reply_text(f"📝 **CAPTION:**\n`{random.choice(CAPTIONS)}`")
 
         await safe_delete(status)
 
@@ -254,9 +270,11 @@ async def process_album(client, original, mgid, uid):
         await safe_edit(status, f"❌ {str(e)[:200]}")
     finally:
         for p in processed:
-            try: os.remove(p)
-            except: pass
+            try:
+                os.remove(p)
+            except:
+                pass
 
 if __name__ == "__main__":
-    print("🚀 Ghost Operator V9.1 Started")
+    print("🚀 Ghost Operator V9.3 Clean Started")
     app.run()
